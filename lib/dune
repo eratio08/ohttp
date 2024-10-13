@@ -1,0 +1,15 @@
+(library
+ (name ohttp)
+ (modules http field protocol_version request response method status)
+ (inline_tests)
+ (libraries eio_main eio.mock angstrom sexplib0 shaded uri)
+ (preprocess (pps ppx_let ppx_inline_test ppx_assert)))
+
+(library
+ (name bits)
+ (modules bits)
+ (inline_tests)
+ (libraries shaded)
+ (preprocess (pps ppx_let ppx_inline_test ppx_assert)))
+
+(env (dev (flags :standard -warn-error -26-27-32)))
