@@ -159,35 +159,58 @@ let sexp_of_t =
         ; to_sexp v
         ]
   in
+  let tup7 to_sexp = function
+    | o1, o2, o3, o4, o5, o6, v ->
+      l
+        [ oa to_sexp o1
+        ; oa to_sexp o2
+        ; oa to_sexp o3
+        ; oa to_sexp o4
+        ; oa to_sexp o5
+        ; oa to_sexp o6
+        ; to_sexp v
+        ]
+  in
   function
   | IPv6_128 (s1, s2, s3, s4, s5, s6, ls32) ->
-    l [ ia s1; ia s2; ia s3; ia s4; ia s5; ia s6; sexp_of_ls32 ls32 ]
+    l [ a "IPv6_128"; l [ ia s1; ia s2; ia s3; ia s4; ia s5; ia s6; sexp_of_ls32 ls32 ] ]
   | IPv6_112 (s1, s2, s3, s4, s5, ls32) ->
-    l [ ia s1; ia s2; ia s3; ia s4; ia s5; sexp_of_ls32 ls32 ]
+    l [ a "IPv6_112"; l [ ia s1; ia s2; ia s3; ia s4; ia s5; sexp_of_ls32 ls32 ] ]
   | IPv6_96_pre_16 (s1, s2, s3, s4, s5, ls32) ->
-    l [ oa ia s1; ia s2; ia s3; ia s4; ia s5; sexp_of_ls32 ls32 ]
+    l
+      [ a "IPv6_96_pre_16"
+      ; l [ oa ia s1; ia s2; ia s3; ia s4; ia s5; sexp_of_ls32 ls32 ]
+      ]
   | IPv6_80_pre_32 (s1, s2, s3, s4, ls32) ->
-    l [ oa (tup2 ia) s1; ia s2; ia s3; ia s4; sexp_of_ls32 ls32 ]
+    l
+      [ a "IPv6_80_pre_32"
+      ; l [ oa (tup2 ia) s1; ia s2; ia s3; ia s4; sexp_of_ls32 ls32 ]
+      ]
   | IPv6_64_pre_48 (s1, s2, s3, ls32) ->
-    l [ oa (tup3 ia) s1; ia s2; ia s3; sexp_of_ls32 ls32 ]
-  | IPv6_48_pre_64 (s1, s2, ls32) -> l [ oa (tup4 ia) s1; ia s2; sexp_of_ls32 ls32 ]
-  | IPv6_32_pre_80 (s1, ls32) -> l [ oa (tup5 ia) s1; sexp_of_ls32 ls32 ]
-  | IPv6_16_pre_96 (s1, h16) -> l [ oa (tup6 ia) s1; ia h16 ]
-  | _ -> failwith "todo"
+    l [ a "IPv6_64_pre_48"; l [ oa (tup3 ia) s1; ia s2; ia s3; sexp_of_ls32 ls32 ] ]
+  | IPv6_48_pre_64 (s1, s2, ls32) ->
+    l [ a "IPv6_48_pre_64"; l [ oa (tup4 ia) s1; ia s2; sexp_of_ls32 ls32 ] ]
+  | IPv6_32_pre_80 (s1, ls32) ->
+    l [ a "IPv6_32_pre_80"; l [ oa (tup5 ia) s1; sexp_of_ls32 ls32 ] ]
+  | IPv6_16_pre_96 (s1, h16) -> l [ a "IPv6_16_pre_96"; l [ oa (tup6 ia) s1; ia h16 ] ]
+  | IPv6_pre_112 s1 -> l [ a "IPv6_pre_112"; l [ oa (tup7 ia) s1 ] ]
 ;;
 
 (*
    IPv6address = 6( h16 ":" ) ls32
 *)
 let ipv6_128_parser =
-  let%bind segments = count 6 (h16_parser <* char ':') in
-  let%bind ls32 = ls32_parser in
-  let ipv6 =
-    match segments with
-    | [ s1; s2; s3; s4; s5; s6 ] -> IPv6_128 (s1, s2, s3, s4, s5, s6, ls32)
-    | _ -> failwith "Angstrom.count has a bug"
+  let parser =
+    let%bind segments = count 6 (h16_parser <* char ':') in
+    let%bind ls32 = ls32_parser in
+    let ipv6 =
+      match segments with
+      | [ s1; s2; s3; s4; s5; s6 ] -> IPv6_128 (s1, s2, s3, s4, s5, s6, ls32)
+      | _ -> failwith "Angstrom.count has a bug"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_128_parser"
 ;;
 
 let%test_unit "ipv6_128_parser" =
@@ -211,14 +234,17 @@ let%test_unit "ipv6_128_parser" =
    "::" 5( h16 ":" ) ls32
 *)
 let ipv6_112_parser =
-  let%bind segments = string "::" *> count 5 (h16_parser <* char ':') in
-  let%bind ls32 = ls32_parser in
-  let ipv6 =
-    match segments with
-    | [ s1; s2; s3; s4; s5 ] -> IPv6_112 (s1, s2, s3, s4, s5, ls32)
-    | _ -> failwith "Angstrom.count has a bug"
+  let parser =
+    let%bind segments = string "::" *> count 5 (h16_parser <* char ':') in
+    let%bind ls32 = ls32_parser in
+    let ipv6 =
+      match segments with
+      | [ s1; s2; s3; s4; s5 ] -> IPv6_112 (s1, s2, s3, s4, s5, ls32)
+      | _ -> failwith "Angstrom.count has a bug"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_112_parser"
 ;;
 
 let%test_unit "ipv6_112_parser" =
@@ -242,16 +268,19 @@ let%test_unit "ipv6_112_parser" =
    [ h16 ] "::" 4( h16 ":" ) ls32
 *)
 let ipv6_96_pre_16_parser =
-  let%bind prefix = range 0 1 h16_parser in
-  let%bind segments = string "::" *> count 4 (h16_parser <* char ':') in
-  let%bind ls32 = ls32_parser in
-  let ipv6 =
-    match prefix, segments with
-    | [], [ s1; s2; s3; s4 ] -> IPv6_96_pre_16 (None, s1, s2, s3, s4, ls32)
-    | [ p1 ], [ s1; s2; s3; s4 ] -> IPv6_96_pre_16 (Some p1, s1, s2, s3, s4, ls32)
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 h16_parser in
+    let%bind segments = string "::" *> count 4 (h16_parser <* char ':') in
+    let%bind ls32 = ls32_parser in
+    let ipv6 =
+      match prefix, segments with
+      | [], [ s1; s2; s3; s4 ] -> IPv6_96_pre_16 (None, s1, s2, s3, s4, ls32)
+      | [ p1 ], [ s1; s2; s3; s4 ] -> IPv6_96_pre_16 (Some p1, s1, s2, s3, s4, ls32)
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_96_pre_16_parser"
 ;;
 
 let%test_unit "ipv6_96_pre_16_parser" =
@@ -275,35 +304,45 @@ let%test_unit "ipv6_96_pre_16_parser" =
    h16 ":" ; fails if next char is ':'
 *)
 let h16_pre_parser =
-  let%bind h16 = h16_parser <* char ':' in
-  let%bind next = peek_char_fail in
-  if next = ':' then fail "" else return h16
+  let parser =
+    let%bind h16 = h16_parser <* char ':' in
+    let%bind next = peek_char_fail in
+    if next = ':' then fail "" else return h16
+  in
+  parser <?> "h16_pre_parser"
 ;;
 
 (*
    [ *<n>( h16 ":" ) h16 ]
 *)
 let prefix_parser n =
-  let%bind preprefix = range 0 n h16_pre_parser in
-  let%bind prefix = h16_parser in
-  preprefix @ [ prefix ] |> return
+  let parser =
+    let%bind preprefix = range 0 n h16_pre_parser in
+    let%bind prefix = h16_parser in
+    preprefix @ [ prefix ] |> return
+  in
+  parser <?> "prefix_parser"
 ;;
 
 (*
    [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
 *)
 let ipv6_80_pre_32_parser =
-  let%bind prefix = range 0 1 (prefix_parser 1) >>| List.flatten in
-  let%bind segments = string "::" *> count 3 (h16_parser <* char ':') in
-  let%bind ls32 = ls32_parser in
-  let ipv6 =
-    match prefix, segments with
-    | [], [ s1; s2; s3 ] -> IPv6_80_pre_32 (None, s1, s2, s3, ls32)
-    | [ p1 ], [ s1; s2; s3 ] -> IPv6_80_pre_32 (Some (None, p1), s1, s2, s3, ls32)
-    | [ pp1; p1 ], [ s1; s2; s3 ] -> IPv6_80_pre_32 (Some (Some pp1, p1), s1, s2, s3, ls32)
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 (prefix_parser 1) >>| List.flatten in
+    let%bind segments = string "::" *> count 3 (h16_parser <* char ':') in
+    let%bind ls32 = ls32_parser in
+    let ipv6 =
+      match prefix, segments with
+      | [], [ s1; s2; s3 ] -> IPv6_80_pre_32 (None, s1, s2, s3, ls32)
+      | [ p1 ], [ s1; s2; s3 ] -> IPv6_80_pre_32 (Some (None, p1), s1, s2, s3, ls32)
+      | [ pp1; p1 ], [ s1; s2; s3 ] ->
+        IPv6_80_pre_32 (Some (Some pp1, p1), s1, s2, s3, ls32)
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_80_pre_32_parser"
 ;;
 
 let%test_unit "ipv6_80_pre_32_parser" =
@@ -334,19 +373,22 @@ let%test_unit "ipv6_80_pre_32_parser" =
    [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
 *)
 let ipv6_64_pre_48_parser =
-  let%bind prefix = range 0 1 (prefix_parser 2) >>| List.flatten in
-  let%bind segments = string "::" *> count 2 (h16_parser <* char ':') in
-  let%bind ls32 = ls32_parser in
-  let ipv6 =
-    match prefix, segments with
-    | [], [ s1; s2 ] -> IPv6_64_pre_48 (None, s1, s2, ls32)
-    | [ p1 ], [ s1; s2 ] -> IPv6_64_pre_48 (Some (None, None, p1), s1, s2, ls32)
-    | [ pp1; p1 ], [ s1; s2 ] -> IPv6_64_pre_48 (Some (None, Some pp1, p1), s1, s2, ls32)
-    | [ pp1; pp2; p1 ], [ s1; s2 ] ->
-      IPv6_64_pre_48 (Some (Some pp1, Some pp2, p1), s1, s2, ls32)
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 (prefix_parser 2) >>| List.flatten in
+    let%bind segments = string "::" *> count 2 (h16_parser <* char ':') in
+    let%bind ls32 = ls32_parser in
+    let ipv6 =
+      match prefix, segments with
+      | [], [ s1; s2 ] -> IPv6_64_pre_48 (None, s1, s2, ls32)
+      | [ p1 ], [ s1; s2 ] -> IPv6_64_pre_48 (Some (None, None, p1), s1, s2, ls32)
+      | [ pp1; p1 ], [ s1; s2 ] -> IPv6_64_pre_48 (Some (None, Some pp1, p1), s1, s2, ls32)
+      | [ pp1; pp2; p1 ], [ s1; s2 ] ->
+        IPv6_64_pre_48 (Some (Some pp1, Some pp2, p1), s1, s2, ls32)
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_64_pre_48_parser"
 ;;
 
 let%test_unit "ipv6_64_pre_48_parser" =
@@ -377,21 +419,24 @@ let%test_unit "ipv6_64_pre_48_parser" =
    [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
 *)
 let ipv6_48_pre_64_parser =
-  let%bind prefix = range 0 1 (prefix_parser 3) >>| List.flatten in
-  let%bind segments = string "::" *> h16_parser <* char ':' in
-  let%bind ls32 = ls32_parser in
-  let ipv6 =
-    match prefix, segments with
-    | [], s1 -> IPv6_48_pre_64 (None, s1, ls32)
-    | [ p1 ], s1 -> IPv6_48_pre_64 (Some (None, None, None, p1), s1, ls32)
-    | [ pp1; p1 ], s1 -> IPv6_48_pre_64 (Some (None, None, Some pp1, p1), s1, ls32)
-    | [ pp1; pp2; p1 ], s1 ->
-      IPv6_48_pre_64 (Some (None, Some pp1, Some pp2, p1), s1, ls32)
-    | [ pp1; pp2; pp3; p1 ], s1 ->
-      IPv6_48_pre_64 (Some (Some pp1, Some pp2, Some pp3, p1), s1, ls32)
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 (prefix_parser 3) >>| List.flatten in
+    let%bind segments = string "::" *> h16_parser <* char ':' in
+    let%bind ls32 = ls32_parser in
+    let ipv6 =
+      match prefix, segments with
+      | [], s1 -> IPv6_48_pre_64 (None, s1, ls32)
+      | [ p1 ], s1 -> IPv6_48_pre_64 (Some (None, None, None, p1), s1, ls32)
+      | [ pp1; p1 ], s1 -> IPv6_48_pre_64 (Some (None, None, Some pp1, p1), s1, ls32)
+      | [ pp1; pp2; p1 ], s1 ->
+        IPv6_48_pre_64 (Some (None, Some pp1, Some pp2, p1), s1, ls32)
+      | [ pp1; pp2; pp3; p1 ], s1 ->
+        IPv6_48_pre_64 (Some (Some pp1, Some pp2, Some pp3, p1), s1, ls32)
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_48_pre_64_parser"
 ;;
 
 let%test_unit "ipv6_48_pre_64_parser" =
@@ -419,21 +464,25 @@ let%test_unit "ipv6_48_pre_64_parser" =
    [ *4( h16 ":" ) h16 ] "::" ls32
 *)
 let ipv6_32_pre_80_parser =
-  let%bind prefix = range 0 1 (prefix_parser 4) >>| List.flatten in
-  let%bind ls32 = string "::" *> ls32_parser in
-  let ipv6 =
-    match prefix with
-    | [] -> IPv6_32_pre_80 (None, ls32)
-    | [ p1 ] -> IPv6_32_pre_80 (Some (None, None, None, None, p1), ls32)
-    | [ pp1; p1 ] -> IPv6_32_pre_80 (Some (None, None, None, Some pp1, p1), ls32)
-    | [ pp1; pp2; p1 ] -> IPv6_32_pre_80 (Some (None, None, Some pp1, Some pp2, p1), ls32)
-    | [ pp1; pp2; pp3; p1 ] ->
-      IPv6_32_pre_80 (Some (None, Some pp1, Some pp2, Some pp3, p1), ls32)
-    | [ pp1; pp2; pp3; pp4; p1 ] ->
-      IPv6_32_pre_80 (Some (Some pp1, Some pp2, Some pp3, Some pp4, p1), ls32)
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 (prefix_parser 4) >>| List.flatten in
+    let%bind ls32 = string "::" *> ls32_parser in
+    let ipv6 =
+      match prefix with
+      | [] -> IPv6_32_pre_80 (None, ls32)
+      | [ p1 ] -> IPv6_32_pre_80 (Some (None, None, None, None, p1), ls32)
+      | [ pp1; p1 ] -> IPv6_32_pre_80 (Some (None, None, None, Some pp1, p1), ls32)
+      | [ pp1; pp2; p1 ] ->
+        IPv6_32_pre_80 (Some (None, None, Some pp1, Some pp2, p1), ls32)
+      | [ pp1; pp2; pp3; p1 ] ->
+        IPv6_32_pre_80 (Some (None, Some pp1, Some pp2, Some pp3, p1), ls32)
+      | [ pp1; pp2; pp3; pp4; p1 ] ->
+        IPv6_32_pre_80 (Some (Some pp1, Some pp2, Some pp3, Some pp4, p1), ls32)
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_32_pre_80_parser"
 ;;
 
 let%test_unit "ipv6_32_pre_80_parser" =
@@ -464,24 +513,27 @@ let%test_unit "ipv6_32_pre_80_parser" =
    [ *5( h16 ":" ) h16 ] "::" h16
 *)
 let ipv6_16_pre_96_parser =
-  let%bind prefix = range 0 1 (prefix_parser 5) >>| List.flatten in
-  let%bind h16 = string "::" *> h16_parser in
-  let ipv6 =
-    match prefix with
-    | [] -> IPv6_16_pre_96 (None, h16)
-    | [ p1 ] -> IPv6_16_pre_96 (Some (None, None, None, None, None, p1), h16)
-    | [ pp1; p1 ] -> IPv6_16_pre_96 (Some (None, None, None, None, Some pp1, p1), h16)
-    | [ pp1; pp2; p1 ] ->
-      IPv6_16_pre_96 (Some (None, None, None, Some pp1, Some pp2, p1), h16)
-    | [ pp1; pp2; pp3; p1 ] ->
-      IPv6_16_pre_96 (Some (None, None, Some pp1, Some pp2, Some pp3, p1), h16)
-    | [ pp1; pp2; pp3; pp4; p1 ] ->
-      IPv6_16_pre_96 (Some (None, Some pp1, Some pp2, Some pp3, Some pp4, p1), h16)
-    | [ pp1; pp2; pp3; pp4; pp5; p1 ] ->
-      IPv6_16_pre_96 (Some (Some pp1, Some pp2, Some pp3, Some pp4, Some pp5, p1), h16)
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 (prefix_parser 5) >>| List.flatten in
+    let%bind h16 = string "::" *> h16_parser in
+    let ipv6 =
+      match prefix with
+      | [] -> IPv6_16_pre_96 (None, h16)
+      | [ p1 ] -> IPv6_16_pre_96 (Some (None, None, None, None, None, p1), h16)
+      | [ pp1; p1 ] -> IPv6_16_pre_96 (Some (None, None, None, None, Some pp1, p1), h16)
+      | [ pp1; pp2; p1 ] ->
+        IPv6_16_pre_96 (Some (None, None, None, Some pp1, Some pp2, p1), h16)
+      | [ pp1; pp2; pp3; p1 ] ->
+        IPv6_16_pre_96 (Some (None, None, Some pp1, Some pp2, Some pp3, p1), h16)
+      | [ pp1; pp2; pp3; pp4; p1 ] ->
+        IPv6_16_pre_96 (Some (None, Some pp1, Some pp2, Some pp3, Some pp4, p1), h16)
+      | [ pp1; pp2; pp3; pp4; pp5; p1 ] ->
+        IPv6_16_pre_96 (Some (Some pp1, Some pp2, Some pp3, Some pp4, Some pp5, p1), h16)
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv6_16_pre_96_parser"
 ;;
 
 let%test_unit "ipv6_16_pre_96_parser" =
@@ -515,25 +567,59 @@ let%test_unit "ipv6_16_pre_96_parser" =
    [ *6( h16 ":" ) h16 ] "::"
 *)
 let ipv6_pre_112_parser =
-  let%bind prefix = range 0 1 (prefix_parser 6) <* string "::" >>| List.flatten in
-  let ipv6 =
-    match prefix with
-    | [] -> IPv6_pre_112 None
-    | [ p1 ] -> IPv6_pre_112 (Some (None, None, None, None, None, None, p1))
-    | [ pp1; p1 ] -> IPv6_pre_112 (Some (None, None, None, None, None, Some pp1, p1))
-    | [ pp1; pp2; p1 ] ->
-      IPv6_pre_112 (Some (None, None, None, None, Some pp1, Some pp2, p1))
-    | [ pp1; pp2; pp3; p1 ] ->
-      IPv6_pre_112 (Some (None, None, None, Some pp1, Some pp2, Some pp3, p1))
-    | [ pp1; pp2; pp3; pp4; p1 ] ->
-      IPv6_pre_112 (Some (None, None, Some pp1, Some pp2, Some pp3, Some pp4, p1))
-    | [ pp1; pp2; pp3; pp4; pp5; p1 ] ->
-      IPv6_pre_112 (Some (None, Some pp1, Some pp2, Some pp3, Some pp4, Some pp5, p1))
-    | [ pp1; pp2; pp3; pp4; pp5; pp6; p1 ] ->
-      IPv6_pre_112 (Some (Some pp1, Some pp2, Some pp3, Some pp4, Some pp5, Some pp6, p1))
-    | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+  let parser =
+    let%bind prefix = range 0 1 (prefix_parser 6) <* string "::" >>| List.flatten in
+    let ipv6 =
+      match prefix with
+      | [] -> IPv6_pre_112 None
+      | [ p1 ] -> IPv6_pre_112 (Some (None, None, None, None, None, None, p1))
+      | [ pp1; p1 ] -> IPv6_pre_112 (Some (None, None, None, None, None, Some pp1, p1))
+      | [ pp1; pp2; p1 ] ->
+        IPv6_pre_112 (Some (None, None, None, None, Some pp1, Some pp2, p1))
+      | [ pp1; pp2; pp3; p1 ] ->
+        IPv6_pre_112 (Some (None, None, None, Some pp1, Some pp2, Some pp3, p1))
+      | [ pp1; pp2; pp3; pp4; p1 ] ->
+        IPv6_pre_112 (Some (None, None, Some pp1, Some pp2, Some pp3, Some pp4, p1))
+      | [ pp1; pp2; pp3; pp4; pp5; p1 ] ->
+        IPv6_pre_112 (Some (None, Some pp1, Some pp2, Some pp3, Some pp4, Some pp5, p1))
+      | [ pp1; pp2; pp3; pp4; pp5; pp6; p1 ] ->
+        IPv6_pre_112
+          (Some (Some pp1, Some pp2, Some pp3, Some pp4, Some pp5, Some pp6, p1))
+      | _ -> failwith "Angstrom.count has a bug, or prefix is too long"
+    in
+    return ipv6
   in
-  return ipv6
+  parser <?> "ipv4_pre_112_parser"
+;;
+
+let%test_unit "ipv6_pre_112_parser" =
+  let parse s =
+    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_pre_112_parser s with
+    | Ok r -> r
+    | Error e -> failwith e
+  in
+  [%test_result: t] (parse "::") ~expect:(IPv6_pre_112 None);
+  [%test_result: t]
+    (parse "1::")
+    ~expect:(IPv6_pre_112 (Some (None, None, None, None, None, None, 1)));
+  [%test_result: t]
+    (parse "1:1::")
+    ~expect:(IPv6_pre_112 (Some (None, None, None, None, None, Some 1, 1)));
+  [%test_result: t]
+    (parse "1:1:1::")
+    ~expect:(IPv6_pre_112 (Some (None, None, None, None, Some 1, Some 1, 1)));
+  [%test_result: t]
+    (parse "1:1:1:1::")
+    ~expect:(IPv6_pre_112 (Some (None, None, None, Some 1, Some 1, Some 1, 1)));
+  [%test_result: t]
+    (parse "1:1:1:1:1::")
+    ~expect:(IPv6_pre_112 (Some (None, None, Some 1, Some 1, Some 1, Some 1, 1)));
+  [%test_result: t]
+    (parse "1:1:1:1:1:1::")
+    ~expect:(IPv6_pre_112 (Some (None, Some 1, Some 1, Some 1, Some 1, Some 1, 1)));
+  [%test_result: t]
+    (parse "1:1:1:1:1:1:1::")
+    ~expect:(IPv6_pre_112 (Some (Some 1, Some 1, Some 1, Some 1, Some 1, Some 1, 1)))
 ;;
 
 (*
@@ -547,14 +633,39 @@ let ipv6_pre_112_parser =
    / [ *5( h16 ":" ) h16 ] "::"              h16
    / [ *6( h16 ":" ) h16 ] "::"
 *)
-let parser () =
-  ipv6_128_parser
-  <|> ipv6_112_parser
-  <|> ipv6_96_pre_16_parser
-  <|> ipv6_80_pre_32_parser
-  <|> ipv6_64_pre_48_parser
-  <|> ipv6_48_pre_64_parser
-  <|> ipv6_32_pre_80_parser
-  <|> ipv6_16_pre_96_parser
-  <|> ipv6_pre_112_parser
+let parser =
+  let parser =
+    ipv6_128_parser
+    <|> ipv6_112_parser
+    <|> ipv6_96_pre_16_parser
+    <|> ipv6_80_pre_32_parser
+    <|> ipv6_64_pre_48_parser
+    <|> ipv6_48_pre_64_parser
+    <|> ipv6_32_pre_80_parser
+    <|> ipv6_16_pre_96_parser
+    <|> ipv6_pre_112_parser
+  in
+  parser <?> "ipv6_parser"
+;;
+
+let%test_unit "parser" =
+  let parse s =
+    match Angstrom.parse_string ~consume:Angstrom.Consume.All parser s with
+    | Ok r -> r
+    | Error e -> failwith e
+  in
+  [%test_result: t]
+    (parse "f:f:f:f:f:f:f:f")
+    ~expect:(IPv6_128 (15, 15, 15, 15, 15, 15, LS32 (15, 15)));
+  [%test_result: t]
+    (parse "f:f:f:f::f:f:f")
+    ~expect:(IPv6_48_pre_64 (Some (Some 15, Some 15, Some 15, 15), 15, LS32 (15, 15)));
+  [%test_result: t]
+    (parse "f:f:f:f:f::f:f")
+    ~expect:
+      (IPv6_32_pre_80 (Some (Some 15, Some 15, Some 15, Some 15, 15), LS32 (15, 15)));
+  [%test_result: t]
+    (parse "f:f:f:f:f:f::f")
+    ~expect:(IPv6_16_pre_96 (Some (Some 15, Some 15, Some 15, Some 15, Some 15, 15), 15));
+  [%test_result: t] (parse "::") ~expect:(IPv6_pre_112 None)
 ;;
