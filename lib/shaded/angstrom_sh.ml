@@ -98,6 +98,13 @@ let range f t p =
     loop t <?> Format.sprintf "range %d %d" f t
 ;;
 
+let maybe p =
+  let%bind m = range 0 1 p in
+  match m with
+  | [] -> return None
+  | a :: _ -> return (Some a)
+;;
+
 let parse_res p s = Angstrom.parse_string ~consume:Angstrom.Consume.All p s
 let parse_res_prefix p s = Angstrom.parse_string ~consume:Angstrom.Consume.Prefix p s
 
