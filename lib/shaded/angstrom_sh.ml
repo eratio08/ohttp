@@ -1,3 +1,5 @@
+module Result = Result_sh
+module String = String_sh
 include Angstrom
 open Angstrom.Let_syntax
 
@@ -72,7 +74,7 @@ let is_uri_subdelim = function
   | _ -> false
 ;;
 
-let uri_subdelim = satisfy is_uri_subdelim
+let uri_subdelim = satisfy is_uri_subdelim <?> "uri_subdelim"
 
 (*
    unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
@@ -82,12 +84,71 @@ let is_uri_unreserved = function
   | c -> is_alpha c || is_num c
 ;;
 
-let uri_unreserved = satisfy is_uri_unreserved
+let uri_unreserved = satisfy is_uri_unreserved <?> "uri_unreserved"
 
 let range f t p =
-  let rec loop = function
-    | n when n = f -> count f p
-    | n -> count n p <|> loop (n - 1)
-  in
-  loop t
+  match f, t with
+  | f, t when f > t -> failwith "from can not be smaller than to"
+  | f, t when f < 0 || t < 0 -> failwith "Range can not be nagative"
+  | _ ->
+    let rec loop = function
+      | n when n = f -> count f p
+      | n -> count n p <|> loop (n - 1)
+    in
+    loop t <?> Format.sprintf "range %d %d" f t
+;;
+
+let parse_res p s = Angstrom.parse_string ~consume:Angstrom.Consume.All p s
+let parse_res_prefix p s = Angstrom.parse_string ~consume:Angstrom.Consume.Prefix p s
+
+let parse p s =
+  match parse_res p s with
+  | Ok r -> r
+  | Error e -> failwith e
+;;
+
+let%test_unit "range" =
+  let module Char = Char_sh in
+  let module List = List_sh in
+  let parser = range 0 3 (char 'a') in
+  [%test_result: (Char.t List.t, String.t) Result.t]
+    (parse_res parser "aaa")
+    ~expect:(Ok [ 'a'; 'a'; 'a' ]);
+  [%test_result: Char.t List.t] (parse parser "aa") ~expect:[ 'a'; 'a' ];
+  [%test_result: Char.t List.t] (parse parser "a") ~expect:[ 'a' ];
+  [%test_result: Char.t List.t] (parse parser "") ~expect:[];
+  let parser = range 0 1 (char 'a') in
+  [%test_result: Char.t List.t] (parse parser "a") ~expect:[ 'a' ];
+  [%test_result: Char.t List.t] (parse parser "") ~expect:[]
+;;
+
+let%test_unit "uri_unreserved" =
+  let module Char = Char_sh in
+  let module String = String_sh in
+  let module Result = Result_sh in
+  let parse = parse uri_unreserved in
+  [%test_result: Char.t] (parse "a") ~expect:'a';
+  [%test_result: Char.t] (parse "_") ~expect:'_';
+  let parse = parse_res uri_unreserved in
+  [%test_result: (Char.t, String.t) Result.t]
+    (parse ":")
+    ~expect:(Error "uri_unreserved: satisfy: ':'");
+  [%test_result: (Char.t, String.t) Result.t]
+    (parse "")
+    ~expect:(Error "uri_unreserved: not enough input")
+;;
+
+let%test_unit "uri_subdelim" =
+  let module Char = Char_sh in
+  let module String = String_sh in
+  let module Result = Result_sh in
+  let parse = parse uri_subdelim in
+  [%test_result: Char.t] (parse "(") ~expect:'(';
+  let parse = parse_res uri_subdelim in
+  [%test_result: (Char.t, String.t) Result.t]
+    (parse ":")
+    ~expect:(Error "uri_subdelim: satisfy: ':'");
+  [%test_result: (Char.t, String.t) Result.t]
+    (parse "")
+    ~expect:(Error "uri_subdelim: not enough input")
 ;;

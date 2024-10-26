@@ -1,6 +1,8 @@
 module Angstrom = Shaded.Angstrom
 module String = Shaded.String
 module Int = Shaded.Int
+module Bool = Shaded.Bool
+module Char = Shaded.Char
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -46,14 +48,6 @@ let percent_decode s =
     Int.of_hex hex_diggits |> Option.map char_of_int)
 ;;
 
-let is_uri_unreserved = function
-  | '-' | '.' | '_' | '~' -> true
-  | c when is_alpha c || is_num c -> true
-  | _ -> false
-;;
-
-let uri_unreserved = satisfy is_uri_unreserved
-
 (*
    pct-encoded = "%" HEXDIG HEXDIG
    HEXDIG      =  DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
@@ -66,4 +60,40 @@ let uri_pct_encoded =
   match decoded with
   | None -> fail ("Invalid percentage encoded string " ^ endoded_str)
   | Some c -> return c
+;;
+
+let is_pct_encoded = function
+  (* gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@" *)
+  | "%3a" | "%2f" | "%3f" | "%23" | "%5b" | "%5d" | "%40" -> true
+  (* sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "=" *)
+  | "%21" | "%24" | "%26" | "%27" | "%28" | "%29" | "%2a" | "%2b" | "%2c" | "%3b" | "%3d"
+    -> true
+  | _ -> false
+;;
+
+let%test_unit "is_pct_encoded: should return true for percentage encoded characters" =
+  (* ' *)
+  [%test_result: Bool.t] ~expect:true (is_pct_encoded "%27");
+  (* : *)
+  [%test_result: Bool.t] ~expect:true (is_pct_encoded "%3a");
+  (* p *)
+  [%test_result: Bool.t] ~expect:false (is_pct_encoded "%70")
+;;
+
+let parser =
+  let parser =
+    let%bind next = take 3 <?> "next" in
+    match is_pct_encoded next with
+    | true ->
+      (match percent_decode next with
+       | None -> fail "not pct encoded"
+       | Some c -> return c)
+    | false -> fail "not pct encoded"
+  in
+  parser <?> "Pct_encode.parser"
+;;
+
+let%test_unit "parser" =
+  let parse = parse parser in
+  [%test_result: Char.t] (parse "%23") ~expect:'#'
 ;;

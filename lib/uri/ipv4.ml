@@ -13,11 +13,7 @@ let digit_int_parser =
 ;;
 
 let%test_unit "digit_int_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All digit_int_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse digit_int_parser in
   let parse_fail s =
     match Angstrom.parse_string ~consume:Angstrom.Consume.All digit_int_parser s with
     | Ok _ -> failwith "shoudl fail"
@@ -37,11 +33,7 @@ let one_to_9_parser =
 ;;
 
 let%test_unit "one_to_9_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All one_to_9_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse one_to_9_parser in
   [%test_result: Char.t] (parse "1") ~expect:'1';
   [%test_result: Char.t] (parse "9") ~expect:'9'
 ;;
@@ -55,11 +47,7 @@ let zero_to_4_parser =
 ;;
 
 let%test_unit "zero_to_4_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All zero_to_4_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse zero_to_4_parser in
   [%test_result: Char.t] (parse "0") ~expect:'0';
   [%test_result: Char.t] (parse "4") ~expect:'4'
 ;;
@@ -73,11 +61,7 @@ let zero_to_5_parse =
 ;;
 
 let%test_unit "zero_to_5_parse" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All zero_to_5_parse s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse zero_to_5_parse in
   [%test_result: Char.t] (parse "0") ~expect:'0';
   [%test_result: Char.t] (parse "5") ~expect:'5'
 ;;
@@ -90,11 +74,7 @@ let ten_to_99_parser =
 ;;
 
 let%test_unit "ten_to_99_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ten_to_99_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ten_to_99_parser in
   [%test_result: Int.t] (parse "10") ~expect:10;
   [%test_result: Int.t] (parse "99") ~expect:99
 ;;
@@ -108,11 +88,7 @@ let hundret_to_199_parser =
 ;;
 
 let%test_unit "hundret_to_199_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All hundret_to_199_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse hundret_to_199_parser in
   [%test_result: Int.t] (parse "100") ~expect:100;
   [%test_result: Int.t] (parse "199") ~expect:199
 ;;
@@ -126,13 +102,7 @@ let twohundret_to_249_parser =
 ;;
 
 let%test_unit "twohundret_to_249_parser" =
-  let parse s =
-    match
-      Angstrom.parse_string ~consume:Angstrom.Consume.All twohundret_to_249_parser s
-    with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse twohundret_to_249_parser in
   [%test_result: Int.t] (parse "200") ~expect:200;
   [%test_result: Int.t] (parse "249") ~expect:249
 ;;
@@ -146,13 +116,7 @@ let twohundretfiftee_to_255_parser =
 ;;
 
 let%test_unit "twohundretfiftee_to_255_parser" =
-  let parse s =
-    match
-      Angstrom.parse_string ~consume:Angstrom.Consume.All twohundretfiftee_to_255_parser s
-    with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse twohundretfiftee_to_255_parser in
   [%test_result: Int.t] (parse "250") ~expect:250;
   [%test_result: Int.t] (parse "255") ~expect:255
 ;;
@@ -173,11 +137,7 @@ let dec_octet_parser =
 ;;
 
 let%test_unit "dec_octet_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All dec_octet_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse dec_octet_parser in
   [%test_result: Int.t] (parse "7") ~expect:7;
   [%test_result: Int.t] (parse "66") ~expect:66
 ;;
@@ -205,11 +165,7 @@ let sexp_of_t (s1, s2, s3, s4) =
 ;;
 
 let%test_unit "parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse parser in
   [%test_result: t] (parse "0.0.0.0") ~expect:(0, 0, 0, 0);
   [%test_result: t] (parse "1.1.1.1") ~expect:(1, 1, 1, 1);
   [%test_result: t] (parse "9.9.9.9") ~expect:(9, 9, 9, 9);

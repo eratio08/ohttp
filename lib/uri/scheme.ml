@@ -1,5 +1,7 @@
 module Angstrom = Shaded.Angstrom
 module String = Shaded.String
+open Angstrom
+open Angstrom.Let_syntax
 
 type t =
   | HTTP
@@ -33,8 +35,6 @@ let sexp_of_t =
    DIGIT  = %x30-39  ; 0-9
 *)
 let parser =
-  let open Angstrom in
-  let open Angstrom.Let_syntax in
   let%bind first_char = alpha in
   let inner_parser = alpha <|> digit <|> char '+' <|> char '-' <|> char '.' in
   let%bind rest = many inner_parser in
@@ -49,18 +49,10 @@ let parser =
   return scheme
 ;;
 
-module Tests = struct
-  let parse str =
-    let field = Angstrom.parse_string ~consume:Angstrom.Consume.All parser str in
-    match field with
-    | Error e -> failwith e
-    | Ok field -> field
-  ;;
-
-  let%test_unit "parser: should parse simple field" =
-    [%test_result: t] (parse "http") ~expect:HTTP;
-    [%test_result: t] (parse "https") ~expect:HTTPS;
-    [%test_result: t] (parse "urn") ~expect:URN;
-    [%test_result: t] (parse "a3x") ~expect:(Other "a3x")
-  ;;
-end
+let%test_unit "parser" =
+  let parse = parse parser in
+  [%test_result: t] (parse "http") ~expect:HTTP;
+  [%test_result: t] (parse "https") ~expect:HTTPS;
+  [%test_result: t] (parse "urn") ~expect:URN;
+  [%test_result: t] (parse "a3x") ~expect:(Other "a3x")
+;;

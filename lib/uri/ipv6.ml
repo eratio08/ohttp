@@ -1,6 +1,7 @@
 module Angstrom = Shaded.Angstrom
 module Int = Shaded.Int
 module String = Shaded.String
+module Option = Shaded.Option
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -18,17 +19,10 @@ let h16_parser =
 ;;
 
 let%test_unit "h16_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All h16_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse h16_parser in
   [%test_result: Int.t] (parse "F") ~expect:15;
   [%test_result: Int.t] (parse "ff") ~expect:255
 ;;
-
-(* [%test_result: Int.t] (parse "210") ~expect:"210"; *)
-(* [%test_result: Int.t] (parse "1fA0") ~expect:"1fA0" *)
 
 type ls32 =
   | LS32 of (Int.t * Int.t)
@@ -74,11 +68,7 @@ let ls32_parser =
 ;;
 
 let%test_unit "ls32_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ls32_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ls32_parser in
   [%test_result: ls32] (parse "1.1.1.1") ~expect:(IPv4 (1, 1, 1, 1));
   [%test_result: ls32] (parse "255.255.255.255") ~expect:(IPv4 (255, 255, 255, 255));
   [%test_result: ls32] (parse "ffff:ffff") ~expect:(LS32 (65535, 65535))
@@ -130,11 +120,7 @@ let sexp_of_t =
   let a s = Sexplib0.Sexp.Atom s
   and l ss = Sexplib0.Sexp.List ss in
   let ia i = Int.to_string i |> a in
-  let oa to_sexp o =
-    match o with
-    | None -> a "None"
-    | Some s -> l [ a "Some"; to_sexp s ]
-  in
+  let oa = Option.sexp_of_t in
   let tup2 to_sexp = function
     | o1, v -> l [ oa to_sexp o1; to_sexp v ]
   in
@@ -214,14 +200,13 @@ let ipv6_128_parser =
 ;;
 
 let%test_unit "ipv6_128_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_128_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_128_parser in
   [%test_result: t]
     (parse "1:1:1:1:1:1:1:1")
     ~expect:(IPv6_128 (1, 1, 1, 1, 1, 1, LS32 (1, 1)));
+  [%test_result: t]
+    (parse "f:f:f:f:f:f:f:f")
+    ~expect:(IPv6_128 (15, 15, 15, 15, 15, 15, LS32 (15, 15)));
   [%test_result: t]
     (parse "1:1:1:1:1:1:3.3.3.3")
     ~expect:(IPv6_128 (1, 1, 1, 1, 1, 1, IPv4 (3, 3, 3, 3)));
@@ -248,11 +233,7 @@ let ipv6_112_parser =
 ;;
 
 let%test_unit "ipv6_112_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_112_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_112_parser in
   [%test_result: t]
     (parse "::1:1:1:1:1:1:1")
     ~expect:(IPv6_112 (1, 1, 1, 1, 1, LS32 (1, 1)));
@@ -284,11 +265,7 @@ let ipv6_96_pre_16_parser =
 ;;
 
 let%test_unit "ipv6_96_pre_16_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_96_pre_16_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_96_pre_16_parser in
   [%test_result: t]
     (parse "1::1:1:1:1:1:1")
     ~expect:(IPv6_96_pre_16 (Some 1, 1, 1, 1, 1, LS32 (1, 1)));
@@ -346,11 +323,7 @@ let ipv6_80_pre_32_parser =
 ;;
 
 let%test_unit "ipv6_80_pre_32_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_80_pre_32_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_80_pre_32_parser in
   [%test_result: t]
     (parse "::1:1:1:1:1")
     ~expect:(IPv6_80_pre_32 (None, 1, 1, 1, LS32 (1, 1)));
@@ -392,11 +365,7 @@ let ipv6_64_pre_48_parser =
 ;;
 
 let%test_unit "ipv6_64_pre_48_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_64_pre_48_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_64_pre_48_parser in
   [%test_result: t] (parse "::1:1:1:1") ~expect:(IPv6_64_pre_48 (None, 1, 1, LS32 (1, 1)));
   [%test_result: t]
     (parse "1::1:1:1:1")
@@ -440,11 +409,7 @@ let ipv6_48_pre_64_parser =
 ;;
 
 let%test_unit "ipv6_48_pre_64_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_48_pre_64_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_48_pre_64_parser in
   [%test_result: t] (parse "::1:1:1") ~expect:(IPv6_48_pre_64 (None, 1, LS32 (1, 1)));
   [%test_result: t]
     (parse "1::1:1:1")
@@ -486,11 +451,7 @@ let ipv6_32_pre_80_parser =
 ;;
 
 let%test_unit "ipv6_32_pre_80_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_32_pre_80_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_32_pre_80_parser in
   [%test_result: t] (parse "::1:1") ~expect:(IPv6_32_pre_80 (None, LS32 (1, 1)));
   [%test_result: t]
     (parse "1::1:1")
@@ -537,11 +498,7 @@ let ipv6_16_pre_96_parser =
 ;;
 
 let%test_unit "ipv6_16_pre_96_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_16_pre_96_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_16_pre_96_parser in
   [%test_result: t] (parse "::1") ~expect:(IPv6_16_pre_96 (None, 1));
   [%test_result: t]
     (parse "1::1")
@@ -593,11 +550,7 @@ let ipv6_pre_112_parser =
 ;;
 
 let%test_unit "ipv6_pre_112_parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All ipv6_pre_112_parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse ipv6_pre_112_parser in
   [%test_result: t] (parse "::") ~expect:(IPv6_pre_112 None);
   [%test_result: t]
     (parse "1::")
@@ -649,11 +602,7 @@ let parser =
 ;;
 
 let%test_unit "parser" =
-  let parse s =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All parser s with
-    | Ok r -> r
-    | Error e -> failwith e
-  in
+  let parse = parse parser in
   [%test_result: t]
     (parse "f:f:f:f:f:f:f:f")
     ~expect:(IPv6_128 (15, 15, 15, 15, 15, 15, LS32 (15, 15)));

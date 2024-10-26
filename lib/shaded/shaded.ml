@@ -4,3 +4,6 @@ module String = String_sh
 module Int = Int_sh
 module Bool = Bool_sh
 module Char = Char_sh
+module Option = Option_sh
+module Result = Result_sh
+module List = List_sh

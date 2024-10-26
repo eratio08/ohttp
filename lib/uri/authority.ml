@@ -1,4 +1,7 @@
 module Angstrom = Shaded.Angstrom
+module String = Shaded.String
+module Option = Shaded.Option
+module Int = Shaded.Int
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -12,65 +15,77 @@ open Angstrom.Let_syntax
    urn:example:animal:ferret:nose
 
    https://datatracker.ietf.org/doc/html/rfc3986#section-3.2
-
-   authority   = [ userinfo "@" ] host [ ":" port ]
-   userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-   unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
-   pct-encoded = "%" HEXDIG HEXDIG
-   HEXDIG      =  DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
-   sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
-   host        = IP-literal / IPv4address / reg-name
-   IP-literal  = "[" ( IPv6address / IPvFuture  ) "]"
-   IPvFuture   = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
-   IPv6address = 6( h16 ":" ) ls32
-   /                       "::" 5( h16 ":" ) ls32
-   / [               h16 ] "::" 4( h16 ":" ) ls32
-   / [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
-   / [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
-   / [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
-   / [ *4( h16 ":" ) h16 ] "::"              ls32
-   / [ *5( h16 ":" ) h16 ] "::"              h16
-   / [ *6( h16 ":" ) h16 ] "::"
-   ls32        = ( h16 ":" h16 ) / IPv4address ; least-significant 32 bits of address
-   h16         = 1*4HEXDIG ; 16 bits of address represented in hexadecimal
-   IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
-   dec-octet   = DIGIT                 ; 0-9
-   / %x31-39 DIGIT         ; 10-99
-   / "1" 2DIGIT            ; 100-199
-   / "2" %x30-34 DIGIT     ; 200-249
-   / "25" %x30-35          ; 250-255
-   reg-name    = *( unreserved / pct-encoded / sub-delims )
-   port        = *DIGIT
-   DIGIT       = %x30-39 ; 0-9
 *)
 type t =
-  { userinfo : string option
-  ; host : string
+  { userinfo : Userinfo.t option
+  ; host : Host.t
   ; port : int option
   }
 
-(* let parser () = *)
-(*   let open Angstrom in *)
-(*   let open Angstrom.Let_syntax in *)
-(*   let user_info_parser () = string <* char '@' in *)
-(*   let%bind maybe_user_info = option (user_info_parser ()) in *)
-(*   many1 any_char *)
-(* ;; *)
+let sexp_of_t t =
+  let l aa = Sexplib0.Sexp.List aa
+  and a a = Sexplib0.Sexp.Atom a in
+  l
+    [ l [ a "userinfo"; Option.sexp_of_t Userinfo.sexp_of_t t.userinfo ]
+    ; l [ a "host"; Host.sexp_of_t t.host ]
+    ; l [ a "port"; Option.sexp_of_t Int.sexp_of_t t.port ]
+    ]
+;;
 
-module UserInfo = struct
-  (*
-     userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-     unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
-     pct-encoded = "%" HEXDIG HEXDIG
-     HEXDIG      =  DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
-     sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
-  *)
+(*
+   port = *DIGIT
+*)
+let port_parser =
   let parser =
-    let inner_parser = uri_unreserved <|> Pct_encode.uri_pct_encoded <|> uri_subdelim in
-    many inner_parser |> return
-  ;;
-end
+    let%bind port = many digit in
+    let port =
+      match port with
+      | [] -> 0
+      | port -> String.of_list port |> int_of_string
+    in
+    return port
+  in
+  parser <?> "port_parser"
+;;
 
-module Host = struct
-  (* let parser *)
-end
+(*
+   authority = [ userinfo "@" ] host [ ":" port ]
+*)
+let parser =
+  let%bind userinfo = range 0 1 (Userinfo.parser <* char '@') in
+  let userinfo =
+    match userinfo with
+    | [ userinfo ] -> Some userinfo
+    | _ -> None
+  in
+  let%bind host = Host.parser in
+  let%bind port = range 0 1 (char ':' *> port_parser) in
+  let port =
+    match port with
+    | [] -> None
+    | [ port ] -> Some port
+    | _ -> failwith ""
+  in
+  return { userinfo; host; port }
+;;
+
+let%test_unit "parser" =
+  let parse = parse parser in
+  [%test_result: t]
+    (parse "user:password@google.com:443")
+    ~expect:
+      { userinfo = Some (Userinfo.Userinfo "user:password")
+      ; host = Host.RegName (Regname.RegName "google.com")
+      ; port = Some 443
+      };
+  [%test_result: t]
+    (parse "127.0.0.1:80")
+    ~expect:{ userinfo = None; host = Host.IPv4 (127, 0, 0, 1); port = Some 80 };
+  [%test_result: t]
+    (parse "u:p@[::]:21")
+    ~expect:
+      { userinfo = Some (Userinfo.Userinfo "u:p")
+      ; host = Host.IPLiteral (Ip_lit.IPv6 (Ipv6.IPv6_pre_112 None))
+      ; port = Some 21
+      }
+;;
