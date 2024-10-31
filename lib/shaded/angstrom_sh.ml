@@ -90,6 +90,20 @@ let is_uri_unreserved = function
 
 let uri_unreserved = satisfy is_uri_unreserved <?> "uri_unreserved"
 
+let is_http_obs_text = function
+  | '\x80' .. '\xFF' -> true
+  | _ -> false
+;;
+
+let http_obs_text = satisfy is_http_obs_text
+
+let is_vchar = function
+  | '\x21' .. '\x7E' -> true
+  | _ -> false
+;;
+
+let vchar = satisfy is_vchar
+
 let range f t p =
   match f, t with
   | f, t when f > t -> failwith "from can not be smaller than to"
