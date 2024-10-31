@@ -1,6 +1,5 @@
 open Shaded
 open Angstrom
-open Angstrom.Let_syntax
 
 (*
    HTTP Semantics
