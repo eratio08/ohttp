@@ -1,8 +1,4 @@
-module Angstrom = Shaded.Angstrom
-module String = Shaded.String
-module Int = Shaded.Int
-module Bool = Shaded.Bool
-module Char = Shaded.Char
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 

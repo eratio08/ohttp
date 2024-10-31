@@ -33,6 +33,12 @@ let digit = satisfy is_num
 let sp = char '\032'
 let htab = char '\009'
 
+let word =
+  let%bind fst = alpha in
+  let%bind rest = many_till (alpha <|> digit) sp in
+  fst :: rest |> String_sh.of_list |> return
+;;
+
 let begining_with_alpha p =
   let%bind first_char = alpha in
   let%bind rest = p in
@@ -47,9 +53,7 @@ let%test "should parse quoted" =
       (many1 (satisfy (fun c -> is_whitespace c || is_alpha c))
        >>| fun cs -> List.to_seq cs |> String.of_seq)
   in
-  let parse s =
-    Angstrom.parse_string ~consume:Angstrom.Consume.All parser s |> Result.get_ok
-  in
+  let parse s = parse_string ~consume:Consume.All parser s |> Result.get_ok in
   String.equal (parse "\"test test\"") "test test"
 ;;
 

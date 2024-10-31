@@ -1,8 +1,4 @@
-module Angstrom = Shaded.Angstrom
-module String = Shaded.String
-module List = Shaded.List
-module Char = Shaded.Char
-module Result = Shaded.Result
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -10,16 +6,13 @@ type segment =
   | Segment of string
   | Segment_nz of string
   | Segment_nz_nc of string
-  | Empty
 
 let sexp_of_segment =
-  let a s = Sexplib0.Sexp.Atom s
-  and l aa = Sexplib0.Sexp.List aa in
+  let open Sexp in
   function
   | Segment s -> l [ a "Segment"; a s ]
   | Segment_nz s -> l [ a "Segment_nz"; a s ]
   | Segment_nz_nc s -> l [ a "Segment_nz_nc"; a s ]
-  | Empty -> a "Empty"
 ;;
 
 let compare_segment s1 s2 =
@@ -27,7 +20,6 @@ let compare_segment s1 s2 =
   | Segment s1, Segment s2 -> String.compare s1 s2
   | Segment_nz s1, Segment_nz s2 -> String.compare s1 s2
   | Segment_nz_nc s1, Segment_nz_nc s2 -> String.compare s1 s2
-  | Empty, Empty -> 0
   | _ -> Int.min_int
 ;;
 
@@ -46,8 +38,7 @@ type t =
   | PathEmpty
 
 let sexp_of_t =
-  let a s = Sexplib0.Sexp.Atom s
-  and l aa = Sexplib0.Sexp.List aa in
+  let open Sexp in
   function
   | PathAbEmpty s -> l [ a "PathAbEmpty"; List.sexp_of_t sexp_of_segment s ]
   | PathAbsolute s -> l [ a "PathAbsolute"; List.sexp_of_t sexp_of_segment s ]

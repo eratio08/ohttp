@@ -1,7 +1,4 @@
-module Angstrom = Shaded.Angstrom
-module String = Shaded.String
-module Option = Shaded.Option
-module Int = Shaded.Int
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -23,8 +20,7 @@ type t =
   }
 
 let sexp_of_t t =
-  let l aa = Sexplib0.Sexp.List aa
-  and a a = Sexplib0.Sexp.Atom a in
+  let open Sexp in
   l
     [ l [ a "userinfo"; Option.sexp_of_t Userinfo.sexp_of_t t.userinfo ]
     ; l [ a "host"; Host.sexp_of_t t.host ]
@@ -74,8 +70,8 @@ let%test_unit "parser" =
   [%test_result: t]
     (parse "user:password@google.com:443")
     ~expect:
-      { userinfo = Some (Userinfo.Userinfo "user:password")
-      ; host = Host.RegName (Regname.RegName "google.com")
+      { userinfo = Some "user:password"
+      ; host = Host.RegName "google.com"
       ; port = Some 443
       };
   [%test_result: t]
@@ -84,8 +80,5 @@ let%test_unit "parser" =
   [%test_result: t]
     (parse "u:p@[::]:21")
     ~expect:
-      { userinfo = Some (Userinfo.Userinfo "u:p")
-      ; host = Host.IPLiteral (Ip_lit.IPv6 (Ipv6.IPv6_pre_112 None))
-      ; port = Some 21
-      }
+      { userinfo = Some "u:p"; host = Host.IPv6 (0, 0, 0, 0, 0, 0, 0, 0); port = Some 21 }
 ;;

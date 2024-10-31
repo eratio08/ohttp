@@ -1,7 +1,7 @@
 (library
- (name shaded)
+ (name sexp)
  (inline_tests)
- (libraries angstrom sexp)
+ (libraries sexplib0)
  (preprocess (pps ppx_let ppx_inline_test ppx_assert)))
 
 (env (dev (flags :standard -warn-error -26-27-32)))

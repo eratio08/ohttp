@@ -1,4 +1,6 @@
-module Angstrom = Shaded.Angstrom
+open Shaded
+open Angstrom
+open Angstrom.Let_syntax
 
 type t =
   | GET
@@ -56,7 +58,6 @@ let pp fmt t =
 let sexp_of_t t = Sexplib0.Sexp.Atom (Format.asprintf "%a" pp t)
 
 let parser =
-  let open Angstrom in
   string "GET" *> return GET
   <|> string "HEAD" *> return HEAD
   <|> string "POST" *> return POST
@@ -67,21 +68,14 @@ let parser =
   <|> string "TRACE" *> return TRACE
 ;;
 
-module Tests = struct
-  let parse str =
-    match Angstrom.parse_string ~consume:Angstrom.Consume.All parser str with
-    | Error e -> failwith e
-    | Ok field -> field
-  ;;
-
-  let%test_unit "parser: should parse http method" =
-    [%test_result: t] ~expect:GET (parse "GET");
-    [%test_result: t] ~expect:HEAD (parse "HEAD");
-    [%test_result: t] ~expect:POST (parse "POST");
-    [%test_result: t] ~expect:PUT (parse "PUT");
-    [%test_result: t] ~expect:DELETE (parse "DELETE");
-    [%test_result: t] ~expect:CONNECT (parse "CONNECT");
-    [%test_result: t] ~expect:OPTION (parse "OPTION");
-    [%test_result: t] ~expect:TRACE (parse "TRACE")
-  ;;
-end
+let%test_unit "parser" =
+  let parse = parse parser in
+  [%test_result: t] ~expect:GET (parse "GET");
+  [%test_result: t] ~expect:HEAD (parse "HEAD");
+  [%test_result: t] ~expect:POST (parse "POST");
+  [%test_result: t] ~expect:PUT (parse "PUT");
+  [%test_result: t] ~expect:DELETE (parse "DELETE");
+  [%test_result: t] ~expect:CONNECT (parse "CONNECT");
+  [%test_result: t] ~expect:OPTION (parse "OPTION");
+  [%test_result: t] ~expect:TRACE (parse "TRACE")
+;;

@@ -1,10 +1,8 @@
-module Angstrom = Shaded.Angstrom
-module Int = Shaded.Int
-module String = Shaded.String
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
-type t = IPvFuture of string * string
+type t = IPvFuture of (string * string)
 
 let sexp_of_t =
   let l aa = Sexplib0.Sexp.List aa

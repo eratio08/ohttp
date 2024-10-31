@@ -1,7 +1,4 @@
-module Angstrom = Shaded.Angstrom
-module Int = Shaded.Int
-module Char = Shaded.Char
-module String = Shaded.String
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -154,8 +151,7 @@ let parser =
 ;;
 
 let sexp_of_t (s1, s2, s3, s4) =
-  let a s = Sexplib0.Sexp.Atom s
-  and l s = Sexplib0.Sexp.List s in
+  let open Sexp in
   l
     [ a (Int.to_string s1)
     ; a (Int.to_string s2)

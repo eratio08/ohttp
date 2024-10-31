@@ -1,5 +1,4 @@
-module Angstrom = Shaded.Angstrom
-module String = Shaded.String
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -10,8 +9,7 @@ type t =
   | Other of string
 
 let sexp_of_t =
-  let a s = Sexplib0.Sexp.Atom s
-  and l a = Sexplib0.Sexp.List a in
+  let open Sexp in
   function
   | HTTP -> a "http"
   | HTTPS -> a "https"

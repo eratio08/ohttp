@@ -1,7 +1,12 @@
-module Angstrom = Shaded.Angstrom
-module Bool = Shaded.Bool
-module String = Shaded.String
-module Option = Shaded.Option
+module Path = Path
+module Query = Query
+module Userinfo = Userinfo
+module Authority = Authority
+module Scheme = Scheme
+module Host = Host
+module Ipv6 = Ipv6
+module Ipv4 = Ipv4
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
@@ -25,8 +30,7 @@ type t =
   }
 
 let sexp_of_t { scheme; authority; path; query; fragment } =
-  let a s = Sexplib0.Sexp.Atom s
-  and l aa = Sexplib0.Sexp.List aa in
+  let open Sexp in
   l
     [ a "URI"
     ; l [ a "scheme"; Scheme.sexp_of_t scheme ]
@@ -76,14 +80,10 @@ let%test_unit "parser" =
     ~expect:
       { scheme = Scheme.Other "foo"
       ; authority =
-          Some
-            { userinfo = None
-            ; host = Host.RegName (Regname.RegName "example.com")
-            ; port = Some 8042
-            }
+          Some { userinfo = None; host = Host.RegName "example.com"; port = Some 8042 }
       ; path = Path.PathAbEmpty [ Path.Segment "over"; Path.Segment "there" ]
-      ; query = Some (Query.Query "name=ferret")
-      ; fragment = Some (Fragment.Fragment "nose")
+      ; query = Some "name=ferret"
+      ; fragment = Some "nose"
       };
   [%test_result: t]
     (parse "urn:example:animal:ferret:nose")
@@ -94,4 +94,21 @@ let%test_unit "parser" =
       ; query = None
       ; fragment = None
       }
+;;
+
+type absolute_uri =
+  { scheme : Scheme.t
+  ; authority : Authority.t option
+  ; path : Path.t
+  ; query : Query.t option
+  }
+
+(*
+   absolute-URI = scheme ":" hier-part [ "?" query ]
+*)
+let absolute_uri_parser =
+  let%bind scheme = Scheme.parser <* char ':' in
+  let%bind authority, path = hier_part_parser in
+  let%bind query = maybe (char '?' *> Query.parser) in
+  return { scheme; authority; path; query }
 ;;

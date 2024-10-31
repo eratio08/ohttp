@@ -1,7 +1,6 @@
 include String
-open Sexplib0
 
-let sexp_of_t t = Sexp.Atom t
+let sexp_of_t t = Sexp.a t
 
 let join ?sep strs =
   let res = ref "" in

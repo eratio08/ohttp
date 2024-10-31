@@ -1,4 +1,4 @@
-module Angstrom = Shaded.Angstrom
+open Shaded
 
 (* Is used in request & response *)
 type t =

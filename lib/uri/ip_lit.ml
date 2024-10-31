@@ -1,19 +1,31 @@
-module Angstrom = Shaded.Angstrom
-module Int = Shaded.Int
-module String = Shaded.String
+open Shaded
 open Angstrom
 open Angstrom.Let_syntax
 
 type t =
-  | IPvFuture of Ipvfuture.t
-  | IPv6 of Ipv6.t
+  | IPvFuture of (string * string)
+  | IPv6 of (int * int * int * int * int * int * int * int)
+  | IPv6v4 of (int * int * int * int * int * int * (int * int * int * int))
 
 let sexp_of_t =
   let l aa = Sexplib0.Sexp.List aa
   and a a = Sexplib0.Sexp.Atom a in
+  let ia i = a (Int.to_string i) in
   function
-  | IPvFuture ipf -> l [ a "IPvFuture"; Ipvfuture.sexp_of_t ipf ]
-  | IPv6 ip6 -> l [ a "IPv6"; Ipv6.sexp_of_t ip6 ]
+  | IPvFuture (ma, mi) -> l [ a "IPvFuture"; a ma; a mi ]
+  | IPv6 (s1, s2, s3, s4, s5, s6, s7, s8) ->
+    l [ a "IPv6"; ia s1; ia s2; ia s3; ia s4; ia s5; ia s6; ia s7; ia s8 ]
+  | IPv6v4 (s1, s2, s3, s4, s5, s6, (ip1, ip2, ip3, ip4)) ->
+    l
+      [ a "IPv6"
+      ; ia s1
+      ; ia s2
+      ; ia s3
+      ; ia s4
+      ; ia s5
+      ; ia s6
+      ; l [ ia ip1; ia ip2; ia ip3; ia ip4 ]
+      ]
 ;;
 
 (*
@@ -22,19 +34,19 @@ let sexp_of_t =
 let parser =
   let ipv6_p =
     let%bind ipv6 = Ipv6.parser in
-    IPv6 ipv6 |> return
+    match ipv6 with
+    | Ipv6.IPv6 ipv6 -> IPv6 ipv6 |> return
+    | Ipv6.IPv6v4 ipv6 -> IPv6v4 ipv6 |> return
   in
   let ipvfut_p =
-    let%bind ipvfut = Ipvfuture.parser in
-    IPvFuture ipvfut |> return
+    let%bind (Ipvfuture.IPvFuture (ma, mi)) = Ipvfuture.parser in
+    IPvFuture (ma, mi) |> return
   in
   char '[' *> (ipv6_p <|> ipvfut_p) <* char ']'
 ;;
 
 let%test_unit "parser" =
   let parse = parse parser in
-  [%test_result: t] (parse "[::]") ~expect:(IPv6 (Ipv6.IPv6_pre_112 None));
-  [%test_result: t]
-    (parse "[vff.0]")
-    ~expect:(IPvFuture (Ipvfuture.IPvFuture ("ff", "0")))
+  [%test_result: t] (parse "[::]") ~expect:(IPv6 (0, 0, 0, 0, 0, 0, 0, 0));
+  [%test_result: t] (parse "[vff.0]") ~expect:(IPvFuture ("ff", "0"))
 ;;

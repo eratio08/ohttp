@@ -10,8 +10,9 @@ let pow base exp =
   loop base exp 1
 ;;
 
-let sexp_of_t t = Sexplib0.Sexp.Atom (Int.to_string t)
+let sexp_of_t t = Sexp.a (Int.to_string t)
 
+(** Parses an int from a given char, panics if not a number *)
 let of_char c =
   match Char.code c - 48 with
   | n when 0 <= n && n <= 9 -> n

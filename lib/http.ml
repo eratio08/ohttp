@@ -1,7 +1,6 @@
-module String = Shaded.String
-module Format = Shaded.Format
-module Angstrom = Shaded.Angstrom
-module Bool = Shaded.Bool
+open Shaded
+open Angstrom
+open Angstrom.Let_syntax
 
 (*
    HTTP Semantics

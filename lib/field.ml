@@ -1,8 +1,6 @@
-[@@@warning "-unused-value-declaration"]
-
-module Format = Shaded.Format
-module Angstrom = Shaded.Angstrom
-module String = Shaded.String
+open Shaded
+open Angstrom
+open Angstrom.Let_syntax
 
 (* Is used in request & response *)
 module Value = struct
@@ -12,9 +10,7 @@ module Value = struct
     | Parameters of (string * string) list
 
   let sexp_of_t =
-    let open Sexplib0 in
-    let a x = Sexp.Atom x
-    and l x = Sexp.List x in
+    let open Sexp in
     function
     | FieldValue fv -> l [ a "FieldValue"; String.sexp_of_t fv ]
     | FieldValues fvs -> l [ a "FieldValues"; l (List.map String.sexp_of_t fvs) ]
@@ -86,8 +82,6 @@ let pp fmt { key; value } =
    TODO: Handle OBS https://datatracker.ietf.org/doc/html/rfc9112#name-obsolete-line-folding
 *)
 let parser =
-  let open Angstrom in
-  let open Angstrom.Let_syntax in
   let ows = many (sp <|> htab) in
   let obs_text =
     satisfy (function
@@ -219,9 +213,7 @@ let equal t1 t2 = t1.key = t2.key && t1.value = t2.value
 
 (* ((key key) (value value)) *)
 let sexp_of_t t =
-  let open Sexplib0 in
-  let a x = Sexp.Atom x
-  and l x = Sexp.List x in
+  let open Sexp in
   l [ l [ a "key"; String.sexp_of_t t.key ]; l [ a "value"; Value.sexp_of_t t.value ] ]
 ;;
 
