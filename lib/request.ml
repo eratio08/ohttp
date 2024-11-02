@@ -31,7 +31,6 @@ module RequestLine = struct
 end
 
 type t =
-  { line : RequestLine.t
-  ; fields : Field.t list
+  { line : RequestLine.t (* ; fields : Field.t list *)
   ; body : bytes option
   }

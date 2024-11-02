@@ -2,6 +2,9 @@
  (name uri)
  (inline_tests)
  (libraries angstrom shaded sexp)
- (preprocess (pps ppx_let ppx_inline_test ppx_assert)))
+ (preprocess
+  (pps ppx_let ppx_inline_test ppx_assert)))
 
-(env (dev (flags :standard -warn-error -26-27-32)))
+(env
+ (dev
+  (flags :standard -warn-error -26-27-32)))

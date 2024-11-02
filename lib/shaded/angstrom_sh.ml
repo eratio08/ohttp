@@ -95,6 +95,9 @@ let is_http_obs_text = function
   | _ -> false
 ;;
 
+(*
+   obs-text = %x80-FF
+*)
 let http_obs_text = satisfy is_http_obs_text
 
 let is_vchar = function
@@ -102,6 +105,9 @@ let is_vchar = function
   | _ -> false
 ;;
 
+(*
+   VCHAR = %x21-7E ; according to RFC5234
+*)
 let vchar = satisfy is_vchar
 
 let range f t p =

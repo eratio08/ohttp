@@ -2,6 +2,9 @@
  (name ohttp)
  (inline_tests)
  (libraries eio_main eio.mock angstrom sexplib0 shaded uri)
- (preprocess (pps ppx_let ppx_inline_test ppx_assert)))
+ (preprocess
+  (pps ppx_let ppx_inline_test ppx_assert)))
 
-(env (dev (flags :standard -warn-error -26-27-32)))
+(env
+ (dev
+  (flags :standard -warn-error -26-27-32)))
